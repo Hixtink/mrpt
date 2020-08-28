@@ -7,7 +7,7 @@
    | Released under BSD License. See: https://www.mrpt.org/License          |
    +------------------------------------------------------------------------+ */
 
-#include "containers-precomp.h"  // Precompiled headers
+#include "containers-precomp.h"	 // Precompiled headers
 //
 #include <mrpt/config.h>
 #include <mrpt/containers/yaml.h>
@@ -535,6 +535,12 @@ static yaml::scalar_t textToScalar(const std::string& s)
 #if MRPT_HAS_FYAML
 static std::optional<yaml::node_t> recursiveParse(struct fy_parser* p);
 
+#if 1  // debug
+#define PARSER_DBG_OUT(STR_) std::cout << ">> " << STR_ << "\n"
+#else
+#define PARSER_DBG_OUT(STR) while (0)
+#endif
+
 static std::optional<std::string> extractComment(
 	struct fy_token* t, enum fy_comment_placement cp)
 {
@@ -543,7 +549,20 @@ static std::optional<std::string> extractComment(
 	if (strEnd == str.data()) return {};
 
 	std::string c(str.data(), strEnd - str.data());
+
+	// Remove trailing "# " in each line:
+	size_t i = 0;
+	while (i < c.size())
+	{
+		const bool startOfLine =
+			i == 0 || (c[i - 1] == '\r' || c[i - 1] == '\n');
+		if (startOfLine)
+		{
+		}
+	}
 	if (c.size() >= 2 && c[0] == '#' && isblank(c[1])) c.erase(0, 2);
+
+	PARSER_DBG_OUT("Comment [" << (int)cp << "]: '" << c << "'\n");
 
 	return c;
 }
@@ -551,12 +570,6 @@ static std::optional<std::string> extractComment(
 static std::optional<yaml::node_t> recursiveParse(struct fy_parser* p)
 {
 	MRPT_START
-
-#if 0  // debug
-#define PARSER_DBG_OUT(STR_) std::cout << ">> " << STR_ << "\n"
-#else
-#define PARSER_DBG_OUT(STR) while (0)
-#endif
 
 	struct fy_event* event = fy_parser_parse(p);
 	if (!event) return {};
@@ -567,42 +580,42 @@ static std::optional<yaml::node_t> recursiveParse(struct fy_parser* p)
 		case FYET_NONE:
 		{
 			PARSER_DBG_OUT("Event: None");
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 			return recursiveParse(p);  // Keep going
 		}
 		break;
 		case FYET_STREAM_START:
 		{
 			PARSER_DBG_OUT("Event: Stream start");
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 			return recursiveParse(p);  // Keep going
 		}
 		break;
 		case FYET_STREAM_END:
 		{
 			PARSER_DBG_OUT("Event: Stream end");
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 			return recursiveParse(p);  // Keep going
 		}
 		break;
 		case FYET_DOCUMENT_START:
 		{
 			PARSER_DBG_OUT("Event: Doc start");
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 			return recursiveParse(p);  // Keep going
 		}
 		break;
 		case FYET_DOCUMENT_END:
 		{
 			PARSER_DBG_OUT("Event: Doc end");
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 			return recursiveParse(p);  // Keep going
 		}
 		break;
 		case FYET_MAPPING_START:
 		{
 			PARSER_DBG_OUT("Event: MAP START");
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 
 			yaml::node_t n;
 			yaml::map_t& m = n.d.emplace<yaml::map_t>();
@@ -631,21 +644,21 @@ static std::optional<yaml::node_t> recursiveParse(struct fy_parser* p)
 		case FYET_MAPPING_END:
 		{
 			PARSER_DBG_OUT("Event: MAP END");
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 			return {};
 		}
 		break;
 		case FYET_SEQUENCE_START:
 		{
 			PARSER_DBG_OUT("Event: SEQ START");
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 			yaml::node_t n;
 			yaml::sequence_t& s = n.d.emplace<yaml::sequence_t>();
 
 			for (;;)
 			{
 				auto entry = recursiveParse(p);
-				if (!entry.has_value()) break;  // end of sequence reached?
+				if (!entry.has_value()) break;	// end of sequence reached?
 				s.push_back(std::move(entry.value()));
 			}
 
@@ -655,7 +668,7 @@ static std::optional<yaml::node_t> recursiveParse(struct fy_parser* p)
 		case FYET_SEQUENCE_END:
 		{
 			PARSER_DBG_OUT("Event: SEQ END");
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 			return {};
 		}
 		break;
@@ -692,7 +705,7 @@ static std::optional<yaml::node_t> recursiveParse(struct fy_parser* p)
 							CommentPosition::RIGHT)] = std::move(cR.value());
 				}
 
-				fy_parser_event_free(p, event);  // free event
+				fy_parser_event_free(p, event);	 // free event
 				return n;
 			}
 			else
@@ -702,7 +715,7 @@ static std::optional<yaml::node_t> recursiveParse(struct fy_parser* p)
 		}
 		break;
 		case FYET_ALIAS:
-			fy_parser_event_free(p, event);  // free event
+			fy_parser_event_free(p, event);	 // free event
 			return recursiveParse(p);  // Keep going
 	};
 

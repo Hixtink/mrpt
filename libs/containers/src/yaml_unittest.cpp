@@ -10,9 +10,10 @@
 #include <gtest/gtest.h>
 #include <mrpt/config.h>
 #include <mrpt/containers/yaml.h>
-#include "mrpt_test.h"
 
 #include <algorithm>  // count()
+
+#include "mrpt_test.h"
 
 MRPT_TEST(yaml, emptyCtor)
 {
@@ -454,61 +455,81 @@ myMap:
     b: 2
     c: 3
 )xxx");
+
+const auto testYamlForComments_1 = std::string(R"xxx(
+# comment line 1, and
+# comment line 2
+1.0
+)xxx");
+
+const auto testYamlForComments_2 = std::string(R"xxx(
+# comment for A
+- a
+# comment for B
+- b
+- c # comment for C
+- d1: xxx
+  d2: xxx
+)xxx");
 // clang-format on
 
-TEST(yaml, fromYAML)
+MRPT_TEST(yaml, fromYAML)
 {
-	try
 	{
-		{
-			auto p = mrpt::containers::yaml::FromText("");
-			EXPECT_TRUE(p.isNullNode());
-		}
-
-		{
-			auto p = mrpt::containers::yaml::FromText(sampleYamlBlock_1);
-			EXPECT_TRUE(p.isScalar());
-			EXPECT_TRUE(p.isNullNode());
-		}
-		{
-			auto p = mrpt::containers::yaml::FromText(sampleYamlBlock_2);
-
-			EXPECT_TRUE(p.isScalar());
-			EXPECT_TRUE(p.as<std::string>() == "foo");
-		}
-
-		{
-			auto p = mrpt::containers::yaml::FromText(sampleYamlBlock_3);
-
-			EXPECT_EQ(p["mySeq"](0).as<std::string>(), "first");
-			EXPECT_EQ(p["myMap"]["P"].as<double>(), -5.0);
-			EXPECT_EQ(p["myMap"]["K"].as<double>(), 10.0);
-
-			EXPECT_FALSE(p.isNullNode());
-			EXPECT_FALSE(p["myMap"].isNullNode());
-
-			EXPECT_TRUE(p["mySeq"](3).isNullNode());
-			EXPECT_TRUE(p["myMap"]["Q"].isNullNode());
-			EXPECT_FALSE(p["myMap"]["K"].isNullNode());
-
-			const auto& e = p["myMap"]["nestedMap"]["a"];
-			EXPECT_TRUE(e.hasComment());
-
-			using mrpt::containers::CommentPosition;
-			EXPECT_FALSE(e.hasComment(CommentPosition::TOP));
-			EXPECT_TRUE(e.hasComment(CommentPosition::RIGHT));
-
-			EXPECT_EQ(e.comment(), "comment for a");
-			EXPECT_EQ(e.comment(CommentPosition::RIGHT), "comment for a");
-			EXPECT_THROW(e.comment(CommentPosition::TOP), std::exception);
-		}
+		auto p = mrpt::containers::yaml::FromText("");
+		EXPECT_TRUE(p.isNullNode());
 	}
-	catch (const std::exception& e)
+
 	{
-		std::cerr << mrpt::exception_to_str(e);
-		GTEST_FAIL();
+		auto p = mrpt::containers::yaml::FromText(sampleYamlBlock_1);
+		EXPECT_TRUE(p.isScalar());
+		EXPECT_TRUE(p.isNullNode());
+	}
+	{
+		auto p = mrpt::containers::yaml::FromText(sampleYamlBlock_2);
+
+		EXPECT_TRUE(p.isScalar());
+		EXPECT_TRUE(p.as<std::string>() == "foo");
+	}
+
+	{
+		auto p = mrpt::containers::yaml::FromText(sampleYamlBlock_3);
+
+		EXPECT_EQ(p["mySeq"](0).as<std::string>(), "first");
+		EXPECT_EQ(p["myMap"]["P"].as<double>(), -5.0);
+		EXPECT_EQ(p["myMap"]["K"].as<double>(), 10.0);
+
+		EXPECT_FALSE(p.isNullNode());
+		EXPECT_FALSE(p["myMap"].isNullNode());
+
+		EXPECT_TRUE(p["mySeq"](3).isNullNode());
+		EXPECT_TRUE(p["myMap"]["Q"].isNullNode());
+		EXPECT_FALSE(p["myMap"]["K"].isNullNode());
+
+		const auto& e = p["myMap"]["nestedMap"]["a"];
+		EXPECT_TRUE(e.hasComment());
+
+		using mrpt::containers::CommentPosition;
+		EXPECT_FALSE(e.hasComment(CommentPosition::TOP));
+		EXPECT_TRUE(e.hasComment(CommentPosition::RIGHT));
+
+		EXPECT_EQ(e.comment(), "comment for a");
+		EXPECT_EQ(e.comment(CommentPosition::RIGHT), "comment for a");
+		EXPECT_THROW(e.comment(CommentPosition::TOP), std::exception);
 	}
 }
+MRPT_TEST_END()
+
+MRPT_TEST(yaml, commentsBis)
+{
+	using mrpt::containers::CommentPosition;
+
+	mrpt::containers::yaml c1 =
+		mrpt::containers::yaml::FromText(testYamlForComments_1);
+
+	c1.printAsYAML();
+}
+MRPT_TEST_END()
 
 // clang-format off
 
@@ -560,4 +581,4 @@ MRPT_TEST(yaml, fromJSON)
 }
 MRPT_TEST_END()
 
-#endif  // MRPT_HAS_FYAML
+#endif	// MRPT_HAS_FYAML
